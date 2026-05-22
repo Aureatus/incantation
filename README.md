@@ -8,6 +8,27 @@ Spell-inspired webcam-based computer control with gesture input.
 - Bun workspaces + Biome
 - Python vision service with `uv`, `ruff`, and `ty`
 
+## Toolchain
+
+Incantation uses `.tool-versions` as the source of truth for language/runtime tools. Install them with [`mise`](https://mise.jdx.dev/):
+
+```bash
+curl https://mise.run | sh
+echo 'eval "$(mise activate zsh)"' >> ~/.zshrc
+exec $SHELL -l
+mise install
+```
+
+This installs the pinned versions of `bun`, `python`, and `uv` for the repo. After that, run the project setup:
+
+```bash
+bun run setup
+```
+
+With mise activated, plain commands automatically resolve to the versions in `.tool-versions` whenever your shell is inside the repo.
+
+Linux X11 desktop control also requires the system package documented below.
+
 ## Commands
 
 ```bash
