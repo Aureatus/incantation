@@ -12,6 +12,7 @@ Spell-inspired webcam-based computer control with gesture input.
 
 ```bash
 bun run setup
+bun run check:system
 bun run dev
 bun run test
 bun run test:report
@@ -20,15 +21,35 @@ bun run test:report:open
 bun run check
 ```
 
+## Linux Input Requirements
+
+Incantation currently injects desktop input on Linux through `xdotool`, which only supports X11/Xorg sessions. Native Wayland sessions are detected, but desktop input control is intentionally limited there because Wayland does not allow arbitrary global input injection.
+
+On Debian/Ubuntu-based systems, install the runtime dependency with:
+
+```bash
+sudo apt install xdotool
+```
+
+You can check your current session type with:
+
+```bash
+echo $XDG_SESSION_TYPE
+```
+
+For full gesture-controlled mouse and keyboard actions, this should report `x11` and `xdotool --version` should succeed.
+
 ## Notes
 
 - `bun run setup` installs Bun deps, syncs the Python vision-service environment with `uv`, and builds the workspace.
-- Linux support starts with X11 input injection.
-- Wayland support is detected but intentionally limited in the first version.
+- `bun run check:system` verifies host runtime requirements such as `xdotool` on Linux X11.
+- `bun run setup` and `bun run dev` run `check:system` first so missing input dependencies fail clearly before startup.
+- Linux desktop input control currently requires X11/Xorg plus `xdotool`.
+- Wayland support is detected but intentionally limited because native Wayland blocks arbitrary global input injection.
 - The Python service supports replay fixtures so gesture behavior can be validated without a live webcam.
 - On first live vision startup, Incantation may download the MediaPipe hand landmarker model into `~/.cache/incantation/models`.
 - Default gestures are index tracking for pointer move, thumb-index pinch for click/drag with a configurable hold threshold, thumb-middle pinch for right click, and open-palm hold for mapped keybinds.
-- `xdotool` is the current Linux X11 backend; it is not guaranteed to be preinstalled, so Incantation now warns in-app when it is missing.
+- `xdotool` is the current Linux X11 backend; Incantation warns in-app when it is missing.
 - `bun run test:smoke:x11` now runs headlessly under `xvfb-run`, so it does not steal focus from your real desktop session.
 - `bun run test:smoke:pipeline` adds a higher-order headless smoke suite that runs Electron + Python replay fixtures + the real X11 adapter together.
 - `bun run test:report` writes JUnit XML reports to `reports/junit`, which keeps the project compatible with open-source JUnit viewers and CI parsers.

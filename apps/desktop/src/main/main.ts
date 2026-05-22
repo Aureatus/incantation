@@ -92,6 +92,10 @@ const getPlatformWarnings = () => {
   return warnings;
 };
 
+for (const warning of getPlatformWarnings()) {
+  console.warn(`Incantation platform warning: ${warning}`);
+}
+
 let mainWindow: BrowserWindow | null = null;
 let commandHudWindow: BrowserWindow | null = null;
 let cameraHudWindow: BrowserWindow | null = null;

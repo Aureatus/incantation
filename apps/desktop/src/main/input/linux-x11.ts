@@ -14,11 +14,18 @@ export const getLinuxX11DependencyWarning = () => {
     return null;
   }
 
-  return "X11 control requires xdotool. Install it with `sudo apt install xdotool`.";
+  return "Linux X11 desktop input control requires xdotool. Install it with `sudo apt install xdotool`. Wayland input control is intentionally limited.";
 };
 
 const runXdotool = async (args: string[]) => {
   await new Promise<void>((resolve, reject) => {
+    if (!isXdotoolInstalled()) {
+      reject(
+        new Error(getLinuxX11DependencyWarning() ?? "xdotool is not installed"),
+      );
+      return;
+    }
+
     const child = spawn("xdotool", args);
     child.on("error", reject);
     child.on("exit", (code) => {
@@ -34,6 +41,13 @@ const runXdotool = async (args: string[]) => {
 
 const runXdotoolCapture = async (args: string[]) => {
   return await new Promise<string>((resolve, reject) => {
+    if (!isXdotoolInstalled()) {
+      reject(
+        new Error(getLinuxX11DependencyWarning() ?? "xdotool is not installed"),
+      );
+      return;
+    }
+
     const child = spawn("xdotool", args);
     let stdout = "";
     let stderr = "";
