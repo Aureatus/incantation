@@ -218,6 +218,7 @@ class GestureMachine:
             "gesture": pose if pose not in {"neutral", "unknown"} else "idle",
         }
         status_debug: StatusDebug = {
+            "trackingBackend": frame.get("tracking_backend", "webcam"),
             "confidence": frame["confidence"],
             "brightness": frame.get("brightness", 0.0),
             "frameDelayMs": frame.get("delay_ms", 0),
@@ -241,6 +242,10 @@ class GestureMachine:
             "bladeScrollDeltaY": 0.0,
             "bladeScrollAccumulated": self.blade_scroll_accumulator,
         }
+        if "device_name" in frame:
+            status_debug["deviceName"] = frame["device_name"]
+        if "preview_available" in frame:
+            status_debug["previewAvailable"] = frame["preview_available"]
         if "camera_width" in frame:
             status_debug["cameraWidth"] = frame["camera_width"]
         if "camera_height" in frame:
@@ -257,6 +262,29 @@ class GestureMachine:
             status_debug["actionHand"] = frame["action_hand"]
         if "fallback_reason" in frame:
             status_debug["fallbackReason"] = frame["fallback_reason"]
+        if frame.get("tracking_backend") == "leap":
+            if "pointer_mode" in frame:
+                status_debug["leapPointerMode"] = frame["pointer_mode"]
+            if "raw_pointer" in frame:
+                status_debug["leapControlPointer"] = frame["raw_pointer"]
+            if "preview_pointer" in frame:
+                status_debug["leapPreviewPointer"] = frame["preview_pointer"]
+            if "clutch_anchor" in frame:
+                status_debug["leapClutchAnchor"] = frame["clutch_anchor"]
+            if "preview_clutch_anchor" in frame:
+                status_debug["leapPreviewClutchAnchor"] = frame["preview_clutch_anchor"]
+            if "clutch_delta_x" in frame:
+                status_debug["leapClutchDeltaX"] = frame["clutch_delta_x"]
+            if "clutch_delta_y" in frame:
+                status_debug["leapClutchDeltaY"] = frame["clutch_delta_y"]
+            if "pointer_range_min_x" in frame:
+                status_debug["leapPointerMinX"] = frame["pointer_range_min_x"]
+            if "pointer_range_max_x" in frame:
+                status_debug["leapPointerMaxX"] = frame["pointer_range_max_x"]
+            if "pointer_range_min_z" in frame:
+                status_debug["leapPointerMinZ"] = frame["pointer_range_min_z"]
+            if "pointer_range_max_z" in frame:
+                status_debug["leapPointerMaxZ"] = frame["pointer_range_max_z"]
         if "learned_pose" in frame:
             status_debug["learnedPose"] = frame["learned_pose"]
             status_debug["learnedPoseConfidence"] = frame.get("learned_pose_confidence", 0.0)

@@ -1,3 +1,8 @@
+import type {
+  AirloomCaptureStateEvent,
+  AirloomStatusDebug,
+} from "@incantation/shared/gesture-events";
+import type { TrackingBackend } from "@incantation/shared/settings-schema";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LivePreview } from "../components/live-preview";
 
@@ -64,82 +69,26 @@ const handSideLabel = (value?: string) => {
   return null;
 };
 
+const formatLandmark = (point?: { x: number; y: number }) => {
+  if (!point) {
+    return "-";
+  }
+
+  return `${point.x.toFixed(2)}, ${point.y.toFixed(2)}`;
+};
+
 type CalibrationProps = {
   serviceRunning: boolean;
   tracking: boolean;
   gesture: string;
+  trackingBackend: TrackingBackend;
+  previewAvailable: boolean;
   pinchStrength: number;
   pointerControlEnabled: boolean;
   pushToTalkGesture: string;
   pushToTalkKey: string;
-  debug: {
-    confidence: number;
-    brightness: number;
-    frameDelayMs: number;
-    cameraWidth?: number;
-    cameraHeight?: number;
-    captureFps?: number;
-    processedFps?: number;
-    previewFps?: number;
-    pose: string;
-    poseConfidence: number;
-    poseScores: {
-      neutral: number;
-      "open-palm": number;
-      "blade-hand": number;
-      "closed-fist": number;
-      "primary-pinch": number;
-      "secondary-pinch": number;
-      "peace-sign": number;
-    };
-    classifierMode: "rules" | "shadow" | "learned";
-    modelVersion: string | null;
-    learnedPose?: string;
-    learnedPoseConfidence?: number;
-    shadowDisagreement?: boolean;
-    actionPose?: string;
-    actionPoseConfidence?: number;
-    actionPoseScores?: {
-      neutral: number;
-      "open-palm": number;
-      "blade-hand": number;
-      "closed-fist": number;
-      "primary-pinch": number;
-      "secondary-pinch": number;
-      "peace-sign": number;
-    };
-    closedFist: boolean;
-    closedFistFrames: number;
-    closedFistReleaseFrames: number;
-    closedFistLatched: boolean;
-    openPalmHold: boolean;
-    secondaryPinchStrength: number;
-    secondaryPinchActive?: boolean;
-    bladeHandActive?: boolean;
-    bladeHandScore?: number;
-    bladeScrollDeltaY?: number;
-    bladeScrollAccumulated?: number;
-    pointerHand?: string;
-    actionHand?: string;
-    fallbackReason?: string;
-  };
-  capture: {
-    sessionId: string;
-    activeLabel: string;
-    recording: boolean;
-    takeCount: number;
-    counts: {
-      neutral: number;
-      "open-palm": number;
-      "closed-fist": number;
-      "primary-pinch": number;
-      "secondary-pinch": number;
-      "peace-sign": number;
-    };
-    lastTakeId: string | null;
-    exportPath: string | null;
-    message: string | null;
-  };
+  debug: AirloomStatusDebug;
+  capture: AirloomCaptureStateEvent;
   onCaptureLabelChange: (label: string) => Promise<unknown>;
   onCaptureStart: () => Promise<unknown>;
   onCaptureStop: () => Promise<unknown>;
@@ -159,6 +108,8 @@ export const CalibrationPage = ({
   serviceRunning,
   tracking,
   gesture,
+  trackingBackend,
+  previewAvailable,
   pinchStrength,
   pointerControlEnabled,
   pushToTalkGesture,
@@ -201,6 +152,8 @@ export const CalibrationPage = ({
       ? 0
       : Math.round((sandboxHits / sandboxAttempts) * 100);
   const actionPoseScores = debug.actionPoseScores ?? debug.poseScores;
+  const captureSupported = trackingBackend === "webcam";
+  const backendLabel = trackingBackend === "leap" ? "Leap" : "Webcam";
   const pointerSide = handSideLabel(debug.pointerHand);
   const actionSide = handSideLabel(debug.actionHand);
   const pointerPanelClassName = [
@@ -221,6 +174,9 @@ export const CalibrationPage = ({
     .join(" ");
 
   const brightnessLabel = useMemo(() => {
+    if (trackingBackend === "leap") {
+      return "Sensor";
+    }
     if (debug.brightness < 0.18) {
       return "Very dark";
     }
@@ -234,7 +190,7 @@ export const CalibrationPage = ({
     }
 
     return "Bright";
-  }, [debug.brightness]);
+  }, [debug.brightness, trackingBackend]);
 
   useEffect(() => {
     captureStartRef.current = onCaptureStart;
@@ -347,6 +303,7 @@ export const CalibrationPage = ({
       );
       if (
         labelEntry &&
+        captureSupported &&
         !capture.recording &&
         !captureBusy &&
         countdown === null
@@ -361,6 +318,7 @@ export const CalibrationPage = ({
       );
       if (
         durationEntry &&
+        captureSupported &&
         !capture.recording &&
         !captureBusy &&
         countdown === null
@@ -372,7 +330,7 @@ export const CalibrationPage = ({
 
       if (key === " " || key === "enter") {
         event.preventDefault();
-        if (!serviceRunning || captureBusy) {
+        if (!captureSupported || !serviceRunning || captureBusy) {
           return;
         }
         if (countdown !== null) {
@@ -390,6 +348,7 @@ export const CalibrationPage = ({
       }
 
       if (
+        captureSupported &&
         key === "backspace" &&
         !capture.recording &&
         !captureBusy &&
@@ -402,6 +361,7 @@ export const CalibrationPage = ({
       }
 
       if (
+        captureSupported &&
         key === "e" &&
         !capture.recording &&
         !captureBusy &&
@@ -420,6 +380,7 @@ export const CalibrationPage = ({
     capture.takeCount,
     captureBusy,
     countdown,
+    captureSupported,
     serviceRunning,
     startCapture,
     stopCapture,
@@ -432,6 +393,10 @@ export const CalibrationPage = ({
       <div className="calibration-layout">
         <div className="calibration-main">
           <div className="metric-grid calibration-summary-grid">
+            <div className="metric-card">
+              <span>Backend</span>
+              <strong>{backendLabel}</strong>
+            </div>
             <div className="metric-card">
               <span>Tracking</span>
               <strong>{tracking ? "Active" : "Searching"}</strong>
@@ -451,9 +416,13 @@ export const CalibrationPage = ({
               <strong>{debug.confidence.toFixed(2)}</strong>
             </div>
             <div className="metric-card">
-              <span>Scene light</span>
+              <span>
+                {trackingBackend === "webcam" ? "Scene light" : "Sensor"}
+              </span>
               <strong>
-                {brightnessLabel} ({debug.brightness.toFixed(2)})
+                {trackingBackend === "webcam"
+                  ? `${brightnessLabel} (${debug.brightness.toFixed(2)})`
+                  : (debug.deviceName ?? "Leap Motion Controller")}
               </strong>
             </div>
             <div className="metric-card">
@@ -657,15 +626,69 @@ export const CalibrationPage = ({
               </div>
             ) : null}
           </div>
+          {trackingBackend === "leap" ? (
+            <>
+              <div className="metric-grid calibration-summary-grid">
+                <div className="metric-card">
+                  <span>Pointer mode</span>
+                  <strong>{debug.leapPointerMode ?? "free"}</strong>
+                </div>
+                <div className="metric-card">
+                  <span>Control raw</span>
+                  <strong>{formatLandmark(debug.leapControlPointer)}</strong>
+                </div>
+                <div className="metric-card">
+                  <span>Preview palm</span>
+                  <strong>{formatLandmark(debug.leapPreviewPointer)}</strong>
+                </div>
+                <div className="metric-card">
+                  <span>Clutch anchor</span>
+                  <strong>
+                    {formatLandmark(debug.leapPreviewClutchAnchor)}
+                  </strong>
+                </div>
+                <div className="metric-card">
+                  <span>Clutch delta</span>
+                  <strong>
+                    {(debug.leapClutchDeltaX ?? 0).toFixed(2)},{" "}
+                    {(debug.leapClutchDeltaY ?? 0).toFixed(2)}
+                  </strong>
+                </div>
+                <div className="metric-card">
+                  <span>Range</span>
+                  <strong>
+                    x {Math.round(debug.leapPointerMinX ?? 0)}..
+                    {Math.round(debug.leapPointerMaxX ?? 0)} / z{" "}
+                    {Math.round(debug.leapPointerMinZ ?? 0)}..
+                    {Math.round(debug.leapPointerMaxZ ?? 0)}
+                  </strong>
+                </div>
+              </div>
+              <p className="panel-copy">
+                Blue ring = clutch anchor. Blue arrow = palm delta while the
+                fist clutch is active. Use these numbers to tune Leap mapping
+                before changing gesture semantics.
+              </p>
+            </>
+          ) : null}
           <p className="panel-copy">
             Cursor motion is frozen unless you actively hold a closed fist. Open
             palm and pinch gestures keep the cursor parked in place while they
             fire.
           </p>
-          <p className="panel-copy">
-            If scene light stays in the dim range or confidence drops while your
-            hand is clearly visible, low light is probably hurting detection.
-          </p>
+          {trackingBackend === "webcam" ? (
+            <p className="panel-copy">
+              If scene light stays in the dim range or confidence drops while
+              your hand is clearly visible, low light is probably hurting
+              detection.
+            </p>
+          ) : (
+            <p className="panel-copy">
+              Leap has no camera-light metric, so prioritize clean two-hand
+              visibility, comfortable device placement, and stable re-entry when
+              tracking drops.
+            </p>
+          )}
           <p className="panel-copy">
             If a pinch feels ignored, compare the primary score against the
             fist, palm, and neutral scores to see which pose the classifier
@@ -676,9 +699,9 @@ export const CalibrationPage = ({
             <div className="eyebrow">Capture</div>
             <h3>Capture dataset</h3>
             <p className="panel-copy">
-              Record deliberate labeled poses so the model learns your real
-              working hand shapes instead of only perfect poses under ideal
-              conditions.
+              {captureSupported
+                ? "Record deliberate labeled poses so the model learns your real working hand shapes instead of only perfect poses under ideal conditions."
+                : "Capture export is webcam-only right now because the current training pipeline stores MediaPipe-style landmarks rather than Leap skeletal frames."}
             </p>
             <div className="metric-grid compact">
               <div className="metric-card">
@@ -723,7 +746,9 @@ export const CalibrationPage = ({
                     name="capture-label"
                     value={label}
                     checked={capture.activeLabel === label}
-                    disabled={capture.recording || captureBusy}
+                    disabled={
+                      !captureSupported || capture.recording || captureBusy
+                    }
                     onChange={() => {
                       void onCaptureLabelChange(label);
                     }}
@@ -750,7 +775,10 @@ export const CalibrationPage = ({
                     value={durationMs}
                     checked={captureDurationMs === durationMs}
                     disabled={
-                      capture.recording || countdown !== null || captureBusy
+                      !captureSupported ||
+                      capture.recording ||
+                      countdown !== null ||
+                      captureBusy
                     }
                     onChange={() => setCaptureDurationMs(durationMs)}
                   />
@@ -761,7 +789,12 @@ export const CalibrationPage = ({
             <div className="hero-actions">
               <button
                 type="button"
-                disabled={!serviceRunning || capture.recording || captureBusy}
+                disabled={
+                  !captureSupported ||
+                  !serviceRunning ||
+                  capture.recording ||
+                  captureBusy
+                }
                 onClick={() => {
                   void startCapture();
                 }}
@@ -774,7 +807,9 @@ export const CalibrationPage = ({
                 type="button"
                 className="ghost"
                 disabled={
-                  (!capture.recording && countdown === null) || captureBusy
+                  !captureSupported ||
+                  (!capture.recording && countdown === null) ||
+                  captureBusy
                 }
                 onClick={() => {
                   if (countdown !== null) {
@@ -792,7 +827,10 @@ export const CalibrationPage = ({
                 type="button"
                 className="ghost"
                 disabled={
-                  capture.takeCount === 0 || capture.recording || captureBusy
+                  !captureSupported ||
+                  capture.takeCount === 0 ||
+                  capture.recording ||
+                  captureBusy
                 }
                 onClick={() => {
                   setCaptureBusy(true);
@@ -807,7 +845,10 @@ export const CalibrationPage = ({
                 type="button"
                 className="ghost"
                 disabled={
-                  capture.takeCount === 0 || capture.recording || captureBusy
+                  !captureSupported ||
+                  capture.takeCount === 0 ||
+                  capture.recording ||
+                  captureBusy
                 }
                 onClick={() => {
                   setCaptureBusy(true);
@@ -956,18 +997,21 @@ export const CalibrationPage = ({
           </div>
         </div>
         <aside className="calibration-side">
-          <div className="eyebrow">Camera</div>
-          <h2>Live preview</h2>
+          <div className="eyebrow">{backendLabel}</div>
+          <h2>{previewAvailable ? "Live preview" : "Backend status"}</h2>
           <div className="camera-card">
             <LivePreview
               serviceRunning={serviceRunning}
-              cameraUnavailable={gesture === "camera-unavailable"}
+              previewAvailable={previewAvailable}
+              backendLabel={backendLabel}
+              cameraUnavailable={
+                trackingBackend === "webcam" && gesture === "camera-unavailable"
+              }
             />
             <p className="panel-copy camera-note">
-              This preview is sourced from the Python vision service, so it
-              reflects the actual camera frames the backend is processing. Teal
-              dots show detected landmarks, amber marks the raw index pointer,
-              and coral marks the smoothed pointer output.
+              {previewAvailable
+                ? "This preview is sourced from the Python vision service, so it reflects the actual camera frames the backend is processing. Teal dots show detected landmarks, amber marks the raw index pointer, and coral marks the smoothed pointer output."
+                : "Leap currently reports status without a camera preview. Use the pose, confidence, hand-role, and fallback panels here to tune behavior while the sensor stays live."}
             </p>
           </div>
         </aside>

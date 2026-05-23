@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 import sys
 import warnings
@@ -224,12 +225,15 @@ def train_model(
     feature_names: list[str], x: np.ndarray, y: np.ndarray, sessions: list[str]
 ) -> dict[str, object]:
     try:
-        from sklearn.linear_model import LogisticRegression
-        from sklearn.metrics import classification_report, confusion_matrix
+        sklearn_linear_model = importlib.import_module("sklearn.linear_model")
+        sklearn_metrics = importlib.import_module("sklearn.metrics")
     except ImportError as error:  # pragma: no cover - depends on optional group
         raise SystemExit(
             "Training dependencies are missing. Run with `uv sync --group train` first."
         ) from error
+    LogisticRegression = sklearn_linear_model.LogisticRegression
+    classification_report = sklearn_metrics.classification_report
+    confusion_matrix = sklearn_metrics.confusion_matrix
 
     train_mask, validation_sessions = _select_validation_split(y, sessions)
 

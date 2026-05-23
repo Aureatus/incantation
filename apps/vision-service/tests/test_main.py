@@ -3,6 +3,7 @@ from typing import cast
 
 import numpy as np
 
+from app.leap_device import LeapFrameSample
 from app.main import emit_preview_frame, encode_debug_frame, run_live
 from app.protocol import (
     FrameState,
@@ -29,7 +30,7 @@ class _FakeCamera:
 
 class _FakeTracker:
     def process(self, frame: object) -> FrameState:
-        if hasattr(frame, "shape"):
+        if hasattr(frame, "shape") or getattr(frame, "preview_frame", None) is not None:
             import time
 
             time.sleep(0.02)
@@ -117,6 +118,8 @@ def test_run_live_emits_camera_unavailable_status_and_retries() -> None:
         "pinchStrength": 0.0,
         "gesture": "camera-unavailable",
         "debug": {
+            "trackingBackend": "webcam",
+            "previewAvailable": True,
             "confidence": 0.0,
             "brightness": 0.0,
             "frameDelayMs": 0,
@@ -162,6 +165,49 @@ def test_run_live_emits_camera_unavailable_status_and_retries() -> None:
     assert sleeps == [1.0]
 
 
+def test_run_live_emits_leap_unavailable_status() -> None:
+    events: list[object] = []
+
+    def failing_camera_factory() -> _FakeCamera:
+        raise RuntimeError("Leap runtime unavailable")
+
+    run_live(
+        max_frames=1,
+        tracking_backend="leap",
+        emit_event=events.append,
+        sleep_for=lambda _seconds: None,
+        camera_factory=failing_camera_factory,
+        tracker_factory=_FakeTracker,
+        machine_factory=_FakeMachine,
+    )
+
+    assert events[1] == {
+        "type": "status",
+        "tracking": False,
+        "pinchStrength": 0.0,
+        "gesture": "device-unavailable",
+        "debug": {
+            "trackingBackend": "leap",
+            "previewAvailable": False,
+            "confidence": 0.0,
+            "brightness": 0.5,
+            "frameDelayMs": 0,
+            "pose": "unknown",
+            "poseConfidence": 0.0,
+            "poseScores": empty_pose_scores(),
+            "classifierMode": "learned",
+            "modelVersion": None,
+            "closedFist": False,
+            "closedFistFrames": 0,
+            "closedFistReleaseFrames": 0,
+            "closedFistLatched": False,
+            "openPalmHold": False,
+            "secondaryPinchStrength": 0.0,
+            "fallbackReason": "device-unavailable",
+        },
+    }
+
+
 def test_encode_debug_frame_emits_jpeg_payload() -> None:
     frame = np.zeros((120, 160, 3), dtype=np.uint8)
     encoded = encode_debug_frame(
@@ -205,6 +251,25 @@ def test_emit_preview_frame_writes_length_prefixed_jpeg() -> None:
     assert payload[:2] == b"\xff\xd8"
 
 
+def test_emit_preview_frame_writes_jpeg_for_leap_preview_frame() -> None:
+    frame = LeapFrameSample(
+        seq=1,
+        captured_at=1.0,
+        hands=[],
+        preview_frame=np.zeros((80, 160), dtype=np.uint8),
+    )
+    output = BytesIO()
+
+    written = emit_preview_frame(frame, None, output)
+
+    assert written is True
+    raw = output.getvalue()
+    payload_size = int.from_bytes(raw[:4], byteorder="big")
+    payload = raw[4:]
+    assert payload_size == len(payload)
+    assert payload[:2] == b"\xff\xd8"
+
+
 def test_run_live_emits_preview_frames_when_enabled() -> None:
     events: list[object] = []
     preview_frames: list[object] = []
@@ -212,6 +277,37 @@ def test_run_live_emits_preview_frames_when_enabled() -> None:
 
     run_live(
         max_frames=2,
+        emit_event=events.append,
+        sleep_for=lambda _seconds: None,
+        time_source=lambda: 1.0,
+        camera_factory=lambda: _FakeCamera(frame=frame),
+        tracker_factory=_FakeTracker,
+        machine_factory=_FakeMachine,
+        preview_enabled=True,
+        preview_emitter=lambda preview, _frame_state: preview_frames.append(preview) is None,
+    )
+
+    status_event = events[1]
+
+    assert isinstance(status_event, dict)
+    status_event = cast(dict[str, object], status_event)
+    assert status_event["type"] == "status"
+    assert len(preview_frames) >= 1
+
+
+def test_run_live_emits_leap_preview_frames_when_enabled() -> None:
+    events: list[object] = []
+    preview_frames: list[object] = []
+    frame = LeapFrameSample(
+        seq=1,
+        captured_at=1.0,
+        hands=[],
+        preview_frame=np.zeros((80, 160), dtype=np.uint8),
+    )
+
+    run_live(
+        max_frames=2,
+        tracking_backend="leap",
         emit_event=events.append,
         sleep_for=lambda _seconds: None,
         time_source=lambda: 1.0,

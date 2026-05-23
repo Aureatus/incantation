@@ -19,6 +19,7 @@ bun run test:smoke:pipeline
 
 - Use replay fixtures for deterministic gesture validation.
 - Use Electron mock buttons to exercise click/key paths without a live webcam.
+- Use `bun run test:leap` for a base-level Leap Motion smoke test after the Ultraleap runtime and Python bindings are installed.
 - On Linux X11, install `xdotool` to enable real pointer and key injection.
 - `bun run test:smoke:x11` runs inside `xvfb-run`, launches an isolated X11 session, drives the real Linux X11 adapter against an `xev` target window, and expects left click, right click, and `Return` to land there without stealing focus from your real session.
 - `bun run test:smoke:pipeline` is a higher-order headless smoke suite: it launches Electron without a window, runs multiple realistic Python replay fixtures through the real vision-service process, and checks click, drag-release, right click, and `Return` behavior on an isolated X11 target.

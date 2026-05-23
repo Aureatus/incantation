@@ -13,6 +13,11 @@ Current flow:
 - action mapper -> `pointer.move`, `pointer.down`, `pointer.up`, `click`, `key.tap`
 - input adapter -> real OS mouse and keyboard injection
 
+Live backends now include:
+
+- `webcam`: local MediaPipe hand landmarks
+- `leap`: Ultraleap hand state on Linux/X11
+
 The desktop action mapper is stateful: it uses a hold threshold to decide whether a `primary-pinch` release should become a click or a drag release.
 
 The calibration UI also surfaces the mapper's live debug state so you can see pinch hold duration and the current click-vs-drag preview while tuning thresholds.

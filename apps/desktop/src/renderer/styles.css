@@ -609,6 +609,154 @@ button:hover {
   gap: 0.45rem;
 }
 
+.quest-guide {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.quest-test-shell {
+  gap: 1.25rem;
+}
+
+.quest-test-hero {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.9rem;
+}
+
+.quest-test-hero-card,
+.quest-smoke-panel,
+.quest-test-sequence-step {
+  border: 1px solid rgba(240, 200, 125, 0.08);
+  padding: 1rem;
+  background: rgba(255, 248, 232, 0.025);
+}
+
+.quest-test-hero-card span {
+  display: block;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent-strong);
+}
+
+.quest-test-hero-card strong {
+  display: block;
+  margin-top: 0.45rem;
+  font-size: 1.1rem;
+}
+
+.quest-hero-url {
+  font-size: 1.35rem;
+}
+
+.quest-hero-address {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: baseline;
+  margin-top: 0.45rem;
+}
+
+.quest-hero-port {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(94, 215, 190, 0.12);
+  color: var(--accent);
+  font-size: 0.92rem;
+}
+
+.quest-qr-card {
+  align-items: center;
+}
+
+.quest-qr-shell {
+  margin-top: 0.45rem;
+  display: inline-flex;
+  padding: 0.9rem;
+  border: 1px solid rgba(240, 200, 125, 0.18);
+  background: rgba(6, 14, 20, 0.82);
+}
+
+.quest-qr-placeholder {
+  margin-top: 0.45rem;
+  min-height: 13.25rem;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  border: 1px dashed rgba(240, 200, 125, 0.18);
+  color: var(--muted);
+  text-align: center;
+}
+
+.quest-guide-actions {
+  justify-content: flex-start;
+}
+
+.quest-url-list {
+  margin: 0;
+  display: grid;
+  gap: 0.45rem;
+  font-size: 0.9rem;
+}
+
+.quest-checklist {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.quest-test-sequence {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.quest-checklist-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid rgba(240, 200, 125, 0.08);
+  background: rgba(255, 248, 232, 0.025);
+}
+
+.quest-status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 4.25rem;
+  padding: 0.3rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.quest-status-pill-ready {
+  background: rgba(94, 215, 190, 0.16);
+  color: var(--accent);
+}
+
+.quest-status-pill-pending {
+  background: rgba(255, 209, 102, 0.14);
+  color: var(--accent-strong);
+}
+
+.quest-smoke-panel {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.quest-smoke-output {
+  margin: 0;
+  min-height: 10rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .mapping-editor-row {
   display: grid;
   grid-template-columns: 1.5fr 1fr auto;

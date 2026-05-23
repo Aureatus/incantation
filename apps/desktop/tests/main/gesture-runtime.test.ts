@@ -39,6 +39,8 @@ const createTestAdapter = () => {
 
 const createTestSettings = (key = "Return") => {
   return {
+    trackingBackend: "webcam" as const,
+    leapOrientation: "normal" as const,
     smoothing: 0.72,
     pointerRegionMargin: 0.12,
     clickPinchThreshold: 0.78,

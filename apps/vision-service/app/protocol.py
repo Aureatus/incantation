@@ -20,6 +20,7 @@ PoseName = Literal[
 ]
 
 PoseClassifierMode = Literal["rules", "shadow", "learned"]
+TrackingBackend = Literal["webcam", "leap"]
 
 
 PoseScores = TypedDict(
@@ -142,6 +143,9 @@ class StatusEvent(TypedDict):
 
 
 class StatusDebug(TypedDict):
+    trackingBackend: NotRequired[TrackingBackend]
+    deviceName: NotRequired[str]
+    previewAvailable: NotRequired[bool]
     confidence: float
     brightness: float
     frameDelayMs: int
@@ -175,6 +179,17 @@ class StatusDebug(TypedDict):
     pointerHand: NotRequired[str]
     actionHand: NotRequired[str]
     fallbackReason: NotRequired[str]
+    leapPointerMode: NotRequired[Literal["free", "clutch"]]
+    leapControlPointer: NotRequired[Landmark]
+    leapPreviewPointer: NotRequired[Landmark]
+    leapClutchAnchor: NotRequired[Landmark]
+    leapPreviewClutchAnchor: NotRequired[Landmark]
+    leapClutchDeltaX: NotRequired[float]
+    leapClutchDeltaY: NotRequired[float]
+    leapPointerMinX: NotRequired[float]
+    leapPointerMaxX: NotRequired[float]
+    leapPointerMinZ: NotRequired[float]
+    leapPointerMaxZ: NotRequired[float]
 
 
 GestureEvent = (
@@ -190,8 +205,22 @@ GestureEvent = (
 
 class FrameState(TypedDict):
     tracking: bool
+    tracking_backend: NotRequired[TrackingBackend]
+    device_name: NotRequired[str]
+    preview_available: NotRequired[bool]
     pointer: NotRequired[Landmark]
     raw_pointer: NotRequired[Landmark]
+    preview_pointer: NotRequired[Landmark]
+    preview_raw_pointer: NotRequired[Landmark]
+    preview_clutch_anchor: NotRequired[Landmark]
+    clutch_anchor: NotRequired[Landmark]
+    clutch_delta_x: NotRequired[float]
+    clutch_delta_y: NotRequired[float]
+    pointer_mode: NotRequired[Literal["free", "clutch"]]
+    pointer_range_min_x: NotRequired[float]
+    pointer_range_max_x: NotRequired[float]
+    pointer_range_min_z: NotRequired[float]
+    pointer_range_max_z: NotRequired[float]
     camera_width: NotRequired[int]
     camera_height: NotRequired[int]
     capture_fps: NotRequired[float]
@@ -215,6 +244,7 @@ class FrameState(TypedDict):
     action_open_palm_hold: NotRequired[bool]
     action_hand_separate: NotRequired[bool]
     action_pointer: NotRequired[Landmark]
+    preview_action_pointer: NotRequired[Landmark]
     pointer_hand: NotRequired[str]
     action_hand: NotRequired[str]
     open_palm_hold: bool

@@ -1,4 +1,10 @@
 import { z } from "zod";
+import { trackingBackendSchema } from "./settings-schema";
+
+const landmarkSchema = z.object({
+  x: z.number().min(0).max(1),
+  y: z.number().min(0).max(1),
+});
 
 export const pointerObservedEventSchema = z.object({
   type: z.literal("pointer.observed"),
@@ -57,6 +63,9 @@ export const captureStateEventSchema = z.object({
 });
 
 export const statusDebugSchema = z.object({
+  trackingBackend: trackingBackendSchema.optional(),
+  deviceName: z.string().min(1).optional(),
+  previewAvailable: z.boolean().optional(),
   confidence: z.number().min(0).max(1),
   brightness: z.number().min(0).max(1),
   frameDelayMs: z.number().int().nonnegative(),
@@ -108,6 +117,17 @@ export const statusDebugSchema = z.object({
   pointerHand: z.string().min(1).optional(),
   actionHand: z.string().min(1).optional(),
   fallbackReason: z.string().min(1).optional(),
+  leapPointerMode: z.enum(["free", "clutch"]).optional(),
+  leapControlPointer: landmarkSchema.optional(),
+  leapPreviewPointer: landmarkSchema.optional(),
+  leapClutchAnchor: landmarkSchema.optional(),
+  leapPreviewClutchAnchor: landmarkSchema.optional(),
+  leapClutchDeltaX: z.number().optional(),
+  leapClutchDeltaY: z.number().optional(),
+  leapPointerMinX: z.number().optional(),
+  leapPointerMaxX: z.number().optional(),
+  leapPointerMinZ: z.number().optional(),
+  leapPointerMaxZ: z.number().optional(),
 });
 
 export const statusEventSchema = z.object({
@@ -183,6 +203,7 @@ export const actionEventSchema = z.discriminatedUnion("type", [
 export type AirloomInputEvent = z.infer<typeof inputEventSchema>;
 export type AirloomActionEvent = z.infer<typeof actionEventSchema>;
 export type AirloomStatusEvent = z.infer<typeof statusEventSchema>;
+export type AirloomStatusDebug = z.infer<typeof statusDebugSchema>;
 export type AirloomCaptureStateEvent = z.infer<typeof captureStateEventSchema>;
 
 export const parseInputEvent = (value: unknown): AirloomInputEvent => {

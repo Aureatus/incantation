@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+export const trackingBackendSchema = z.enum(["webcam", "leap"]);
+export const leapOrientationSchema = z.enum(["normal", "inverted"]);
+
 export const keybindMappingSchema = z.object({
   gesture: z.string().min(1),
   key: z.string().min(1),
@@ -13,6 +16,8 @@ export const commandHudPositionSchema = z.enum([
 ]);
 
 export const settingsSchema = z.object({
+  trackingBackend: trackingBackendSchema.default("webcam"),
+  leapOrientation: leapOrientationSchema.default("normal"),
   smoothing: z.number().min(0).max(1).default(0.5),
   pointerRegionMargin: z.number().min(0).max(0.35).default(0.08),
   clickPinchThreshold: z.number().min(0).max(1).default(0.78),
@@ -42,6 +47,8 @@ export const settingsSchema = z.object({
 });
 
 export type AirloomSettings = z.infer<typeof settingsSchema>;
+export type TrackingBackend = z.infer<typeof trackingBackendSchema>;
+export type LeapOrientation = z.infer<typeof leapOrientationSchema>;
 
 export const parseAirloomSettings = (value: unknown): AirloomSettings => {
   return settingsSchema.parse(value);

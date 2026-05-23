@@ -1,4 +1,8 @@
-import type { AirloomInputEvent } from "@incantation/shared/gesture-events";
+import type {
+  AirloomCaptureStateEvent,
+  AirloomInputEvent,
+  AirloomStatusDebug,
+} from "@incantation/shared/gesture-events";
 import type { AirloomSettings } from "@incantation/shared/settings-schema";
 import {
   type FocusEvent,
@@ -21,57 +25,7 @@ type RuntimeState = {
   pointerControlEnabled: boolean;
   inputSuppressed: boolean;
   recentActions: string[];
-  debug: {
-    confidence: number;
-    brightness: number;
-    frameDelayMs: number;
-    cameraWidth?: number;
-    cameraHeight?: number;
-    captureFps?: number;
-    processedFps?: number;
-    previewFps?: number;
-    pose: string;
-    poseConfidence: number;
-    poseScores: {
-      neutral: number;
-      "open-palm": number;
-      "blade-hand": number;
-      "closed-fist": number;
-      "primary-pinch": number;
-      "secondary-pinch": number;
-      "peace-sign": number;
-    };
-    classifierMode: "rules" | "shadow" | "learned";
-    modelVersion: string | null;
-    learnedPose?: string;
-    learnedPoseConfidence?: number;
-    shadowDisagreement?: boolean;
-    actionPose?: string;
-    actionPoseConfidence?: number;
-    actionPoseScores?: {
-      neutral: number;
-      "open-palm": number;
-      "blade-hand": number;
-      "closed-fist": number;
-      "primary-pinch": number;
-      "secondary-pinch": number;
-      "peace-sign": number;
-    };
-    closedFist: boolean;
-    closedFistFrames: number;
-    closedFistReleaseFrames: number;
-    closedFistLatched: boolean;
-    openPalmHold: boolean;
-    secondaryPinchStrength: number;
-    secondaryPinchActive?: boolean;
-    bladeHandActive?: boolean;
-    bladeHandScore?: number;
-    bladeScrollDeltaY?: number;
-    bladeScrollAccumulated?: number;
-    pointerHand?: string;
-    actionHand?: string;
-    fallbackReason?: string;
-  };
+  debug: AirloomStatusDebug;
   mapper: {
     pointerControlEnabled: boolean;
     primaryPinchActive: boolean;
@@ -96,32 +50,12 @@ type InspectorLogEntry = {
   elapsedMs: number;
 };
 
-type CaptureState = {
-  type: "capture.state";
-  sessionId: string;
-  activeLabel: string;
-  recording: boolean;
-  takeCount: number;
-  counts: {
-    neutral: number;
-    "open-palm": number;
-    "blade-hand": number;
-    "closed-fist": number;
-    "primary-pinch": number;
-    "secondary-pinch": number;
-    "peace-sign": number;
-  };
-  lastTakeId: string | null;
-  exportPath: string | null;
-  message: string | null;
-};
-
 type ServiceStatus = {
   running: boolean;
   adapter: string;
   lastEvent: AirloomInputEvent | null;
   runtime: RuntimeState;
-  capture: CaptureState;
+  capture: AirloomCaptureStateEvent;
   debugRecording: {
     recording: boolean;
     sessionPath: string | null;
@@ -166,6 +100,8 @@ const initialStatus: ServiceStatus = {
     inputSuppressed: false,
     recentActions: [],
     debug: {
+      trackingBackend: "webcam",
+      previewAvailable: true,
       confidence: 0,
       brightness: 0,
       frameDelayMs: 0,
@@ -235,6 +171,8 @@ const initialStatus: ServiceStatus = {
 };
 
 const defaultSettings: AirloomSettings = {
+  trackingBackend: "webcam",
+  leapOrientation: "normal",
   smoothing: 0.5,
   pointerRegionMargin: 0.08,
   clickPinchThreshold: 0.78,
@@ -485,9 +423,15 @@ export const App = () => {
     return new URLSearchParams(window.location.search).get("overlay");
   }, []);
 
+  const trackingBackend =
+    status.runtime.debug.trackingBackend ?? settings.trackingBackend;
+  const backendLabel = trackingBackend === "leap" ? "Leap" : "Webcam";
+  const previewAvailable =
+    status.runtime.debug.previewAvailable ?? trackingBackend === "webcam";
   const cameraUnavailable =
-    status.runtime.gesture === "camera-unavailable" ||
-    status.runtime.debug.fallbackReason === "camera-unavailable";
+    trackingBackend === "webcam" &&
+    (status.runtime.gesture === "camera-unavailable" ||
+      status.runtime.debug.fallbackReason === "camera-unavailable");
 
   useEffect(() => {
     document.body.classList.toggle("overlay-mode", overlayMode !== null);
@@ -514,9 +458,12 @@ export const App = () => {
     return (
       <CameraHud
         serviceRunning={status.running}
+        trackingBackend={trackingBackend}
+        previewAvailable={previewAvailable}
         cameraUnavailable={cameraUnavailable}
         gesture={status.runtime.gesture}
         tracking={status.runtime.tracking}
+        deviceName={status.runtime.debug.deviceName}
         cameraWidth={status.runtime.debug.cameraWidth}
         cameraHeight={status.runtime.debug.cameraHeight}
         captureFps={status.runtime.debug.captureFps}
@@ -535,8 +482,9 @@ export const App = () => {
           <div className="eyebrow">Incantation</div>
           <h1>Gesture control for the rest of your desktop.</h1>
           <p>
-            Linux-first webcam control with live overlays, replayable vision
-            logic, and a command wheel built for real desktop work.
+            Linux-first hand tracking control with live overlays, replayable
+            vision logic, and a semantic desktop runtime that can swap between
+            webcam and Leap backends.
           </p>
           <div className="hero-note-grid">
             <div className="hero-note-card">
@@ -546,6 +494,10 @@ export const App = () => {
             <div className="hero-note-card">
               <span>Mode</span>
               <strong>{status.running ? "Live" : "Offline"}</strong>
+            </div>
+            <div className="hero-note-card">
+              <span>Backend</span>
+              <strong>{backendLabel}</strong>
             </div>
           </div>
         </div>
@@ -612,8 +564,16 @@ export const App = () => {
             </h2>
             <div className="metric-grid compact">
               <div className="metric-card">
+                <span>Backend</span>
+                <strong>{backendLabel}</strong>
+              </div>
+              <div className="metric-card">
                 <span>Adapter</span>
                 <strong>{status.adapter}</strong>
+              </div>
+              <div className="metric-card">
+                <span>Device</span>
+                <strong>{status.runtime.debug.deviceName ?? "auto"}</strong>
               </div>
               <div className="metric-card">
                 <span>Tracking</span>
@@ -1003,6 +963,8 @@ export const App = () => {
           serviceRunning={status.running}
           tracking={status.runtime.tracking}
           gesture={status.runtime.gesture}
+          trackingBackend={trackingBackend}
+          previewAvailable={previewAvailable}
           pinchStrength={status.runtime.pinchStrength}
           pointerControlEnabled={status.runtime.pointerControlEnabled}
           pushToTalkGesture={settings.pushToTalkGesture}
@@ -1032,7 +994,11 @@ export const App = () => {
           workspaceDirection={status.runtime.mapper.workspaceDirection}
         />
       ) : (
-        <SettingsPage settings={settings} onSave={saveSettings} />
+        <SettingsPage
+          settings={settings}
+          serviceRunning={status.running}
+          onSave={saveSettings}
+        />
       )}
     </main>
   );

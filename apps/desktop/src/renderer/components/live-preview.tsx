@@ -2,12 +2,16 @@ import { useEffect, useRef, useState } from "react";
 
 type LivePreviewProps = {
   serviceRunning: boolean;
+  previewAvailable: boolean;
+  backendLabel: string;
   cameraUnavailable: boolean;
   compact?: boolean;
 };
 
 export const LivePreview = ({
   serviceRunning,
+  previewAvailable,
+  backendLabel,
   cameraUnavailable,
   compact = false,
 }: LivePreviewProps) => {
@@ -75,7 +79,7 @@ export const LivePreview = ({
   }, []);
 
   useEffect(() => {
-    if (serviceRunning && !cameraUnavailable) {
+    if (serviceRunning && previewAvailable && !cameraUnavailable) {
       return;
     }
 
@@ -88,13 +92,15 @@ export const LivePreview = ({
     if (canvas !== null && context !== null) {
       context.clearRect(0, 0, canvas.width, canvas.height);
     }
-  }, [cameraUnavailable, serviceRunning]);
+  }, [cameraUnavailable, previewAvailable, serviceRunning]);
 
   const overlayText = !serviceRunning
-    ? "Vision service is stopped. Start it to see the backend camera preview."
-    : cameraUnavailable
-      ? "Backend camera is unavailable. The preview here only appears when the Python vision service can open the webcam."
-      : "Waiting for backend preview frames...";
+    ? `Vision service is stopped. Start it to see the ${backendLabel.toLowerCase()} backend.`
+    : !previewAvailable
+      ? `${backendLabel} is live, but this backend does not expose a camera preview yet.`
+      : cameraUnavailable
+        ? "Backend camera is unavailable. The preview here only appears when the Python vision service can open the webcam."
+        : "Waiting for backend preview frames...";
 
   return (
     <div className={`camera-frame ${compact ? "camera-frame-compact" : ""}`}>

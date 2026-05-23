@@ -1,6 +1,6 @@
 # Incantation
 
-Spell-inspired webcam-based computer control with gesture input.
+Spell-inspired desktop gesture control with webcam and Leap Motion backends.
 
 ## Stack
 
@@ -34,8 +34,11 @@ Linux X11 desktop control also requires the system package documented below.
 ```bash
 bun run setup
 bun run check:system
+bun run setup:leap
+bun run check:leap
 bun run dev
 bun run test
+bun run test:leap
 bun run test:report
 bun run report:open
 bun run test:report:open
@@ -67,7 +70,13 @@ For full gesture-controlled mouse and keyboard actions, this should report `x11`
 - `bun run setup` and `bun run dev` run `check:system` first so missing input dependencies fail clearly before startup.
 - Linux desktop input control currently requires X11/Xorg plus `xdotool`.
 - Wayland support is detected but intentionally limited because native Wayland blocks arbitrary global input injection.
+- `bun run setup:leap` runs the normal workspace setup, then verifies or installs the Ultraleap Linux runtime through the official apt path and builds the Python `leap` bindings into `apps/vision-service`.
+- `bun run setup:leap:bindings` reinstalls only the Python `leap` bindings after the Ultraleap runtime is already present.
+- `bun run check:leap` performs a read-only verification that the Ultraleap runtime files are present and that `apps/vision-service` can import the Python `leap` bindings.
+- `bun run test:leap` performs a base-level Ultraleap smoke test: service status, `leapctl devices`, USB presence, and a short Python tracking probe.
+- The original Leap Motion Controller (`Type: LMC`) is currently verified with the older Ultraleap Linux runtime package set documented in `docs/ultraleap-linux-runtime.md`; do not commit or redistribute Ultraleap `.deb` packages in this repo.
 - The Python service supports replay fixtures so gesture behavior can be validated without a live webcam.
+- The scripted Ultraleap install currently targets Ubuntu/Debian-style Linux systems with `apt-get`, `sudo`, and the official Ultraleap repository; if that repository is unavailable or Hyperion does not expose an original `LMC`, use the legally constrained private-cache workflow in `docs/ultraleap-linux-runtime.md`.
 - On first live vision startup, Incantation may download the MediaPipe hand landmarker model into `~/.cache/incantation/models`.
 - Default gestures are index tracking for pointer move, thumb-index pinch for click/drag with a configurable hold threshold, thumb-middle pinch for right click, and open-palm hold for mapped keybinds.
 - `xdotool` is the current Linux X11 backend; Incantation warns in-app when it is missing.

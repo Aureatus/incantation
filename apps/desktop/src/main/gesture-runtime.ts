@@ -1,6 +1,7 @@
 import type {
   AirloomActionEvent,
   AirloomInputEvent,
+  AirloomStatusDebug,
 } from "@incantation/shared/gesture-events";
 import type { AirloomSettings } from "@incantation/shared/settings-schema";
 import {
@@ -16,57 +17,7 @@ export type RuntimeState = {
   pointerControlEnabled: boolean;
   inputSuppressed: boolean;
   recentActions: string[];
-  debug: {
-    confidence: number;
-    brightness: number;
-    frameDelayMs: number;
-    cameraWidth?: number;
-    cameraHeight?: number;
-    captureFps?: number;
-    processedFps?: number;
-    previewFps?: number;
-    pose: string;
-    poseConfidence: number;
-    poseScores: {
-      neutral: number;
-      "open-palm": number;
-      "blade-hand": number;
-      "closed-fist": number;
-      "primary-pinch": number;
-      "secondary-pinch": number;
-      "peace-sign": number;
-    };
-    classifierMode: "rules" | "shadow" | "learned";
-    modelVersion: string | null;
-    learnedPose?: string;
-    learnedPoseConfidence?: number;
-    shadowDisagreement?: boolean;
-    actionPose?: string;
-    actionPoseConfidence?: number;
-    actionPoseScores?: {
-      neutral: number;
-      "open-palm": number;
-      "blade-hand": number;
-      "closed-fist": number;
-      "primary-pinch": number;
-      "secondary-pinch": number;
-      "peace-sign": number;
-    };
-    closedFist: boolean;
-    closedFistFrames: number;
-    closedFistReleaseFrames: number;
-    closedFistLatched: boolean;
-    openPalmHold: boolean;
-    secondaryPinchStrength: number;
-    secondaryPinchActive?: boolean;
-    bladeHandActive?: boolean;
-    bladeHandScore?: number;
-    bladeScrollDeltaY?: number;
-    bladeScrollAccumulated?: number;
-    pointerHand?: string;
-    actionHand?: string;
-    fallbackReason?: string;
-  };
+  debug: AirloomStatusDebug;
   mapper: ActionMapperDebugState;
   lastError: string | null;
 };
@@ -95,6 +46,8 @@ export const createGestureRuntime = (
     inputSuppressed: false,
     recentActions: [],
     debug: {
+      trackingBackend: "webcam",
+      previewAvailable: true,
       confidence: 0,
       brightness: 0,
       frameDelayMs: 0,
