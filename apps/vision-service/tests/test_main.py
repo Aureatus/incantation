@@ -167,15 +167,16 @@ def test_run_live_emits_camera_unavailable_status_and_retries() -> None:
 
 def test_run_live_emits_leap_unavailable_status() -> None:
     events: list[object] = []
+    sleeps: list[float] = []
 
     def failing_camera_factory() -> _FakeCamera:
         raise RuntimeError("Leap runtime unavailable")
 
     run_live(
-        max_frames=1,
+        max_frames=2,
         tracking_backend="leap",
         emit_event=events.append,
-        sleep_for=lambda _seconds: None,
+        sleep_for=sleeps.append,
         camera_factory=failing_camera_factory,
         tracker_factory=_FakeTracker,
         machine_factory=_FakeMachine,
@@ -206,6 +207,7 @@ def test_run_live_emits_leap_unavailable_status() -> None:
             "fallbackReason": "device-unavailable",
         },
     }
+    assert sleeps == [5.0]
 
 
 def test_encode_debug_frame_emits_jpeg_payload() -> None:

@@ -103,6 +103,60 @@ bun run check:leap
 bun run test:leap
 ```
 
+## Stale Tracking Recovery
+
+The older original-LMC runtime can occasionally wedge with the service still `active` but no LeapC clients receiving tracking frames. In service logs this has shown up as `run_device_tracker error receiving video frames`, followed by `tracking_events_per_second : 0`.
+
+First recover the service:
+
+```bash
+leapctl config images-streaming off
+sudo systemctl restart ultraleap-hand-tracking-service
+bun run test:leap -- --duration 5
+```
+
+Incantation keeps Leap camera preview disabled by default because the image/video path is the most likely trigger observed so far. If you explicitly enable Leap preview with `INCANTATION_DEBUG_PREVIEW=1`, disable it again before normal control testing.
+
+If the service keeps wedging, disable USB autosuspend for the original controller:
+
+```bash
+sudo tee /etc/udev/rules.d/99-incantation-leap-motion.rules >/dev/null <<'EOF'
+ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="f182", ATTR{idProduct}=="0003", TEST=="power/control", ATTR{power/control}="on"
+EOF
+sudo udevadm control --reload-rules
+sudo udevadm trigger --subsystem-match=usb --attr-match=idVendor=f182 --attr-match=idProduct=0003
+```
+
+Unplug and replug the controller if the trigger command does not apply immediately. Avoid unpowered hubs while validating stability.
+
+## Resume From Sleep
+
+If the controller disappears after suspend/resume and only comes back after replugging, keep the autosuspend rule above and add a small systemd sleep hook to restart the Ultraleap service after USB devices have had a moment to re-enumerate:
+
+```bash
+sudo mkdir -p /etc/systemd/system-sleep
+sudo tee /etc/systemd/system-sleep/incantation-leap-resume >/dev/null <<'EOF'
+#!/bin/sh
+case "$1" in
+  post)
+    sleep 2
+    /usr/bin/leapctl config images-streaming off || true
+    /bin/systemctl restart ultraleap-hand-tracking-service || true
+    ;;
+esac
+EOF
+sudo chmod +x /etc/systemd/system-sleep/incantation-leap-resume
+```
+
+After the next resume, verify without replugging:
+
+```bash
+leapctl devices
+bun run test:leap -- --duration 10
+```
+
+If `lsusb` shows `ID f182:0003` but `leapctl devices` still says no devices after the hook runs, the USB bus has not recovered the controller cleanly. In that case, try a direct motherboard USB port instead of a hub before adding heavier USB reset automation.
+
 ## Hyperion Note
 
 Hyperion `6.2.0` installed successfully on Ubuntu `24.04`, but on this workstation it detected the USB controller while the service failed to expose it as a usable device. For the original `LMC`, the older `5.17.1.0` runtime is the currently verified path.

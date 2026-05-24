@@ -27,6 +27,10 @@ DEBUG_PREVIEW_ENABLED = (
     os.environ.get("INCANTATION_DEBUG_PREVIEW") or os.environ.get("AIRLOOM_DEBUG_PREVIEW", "0")
 ) == "1"
 DEBUG_PREVIEW_FD = 3
+LEAP_RETRY_DELAY_S = float(
+    os.environ.get("INCANTATION_LEAP_RETRY_DELAY_S")
+    or os.environ.get("AIRLOOM_LEAP_RETRY_DELAY_S", "5")
+)
 
 
 def env_value(name: str, legacy_name: str, default: str | Path) -> str:
@@ -427,7 +431,7 @@ def run_live(
                 processed += 1
                 if max_frames and processed >= max_frames:
                     return
-                sleep_for(1.0)
+                sleep_for(LEAP_RETRY_DELAY_S if tracking_backend == "leap" else 1.0)
     finally:
         if preview_pipe is not None:
             preview_pipe.close()
